@@ -5,6 +5,7 @@ variables:
   buildConfiguration: 'Release'
 
 stages:
+#stage build
 - stage: 'Build'
   displayName: 'Build the web application'
   jobs: 
@@ -64,3 +65,28 @@ stages:
 
     - publish: '$(Build.ArtifactStagingDirectory)'
       artifact: drop
+
+#stage deloy
+- stage: 'Deploy'
+  displayName: 'Deploy the web application'
+  dependsOn: Build
+  jobs:
+  - deployment: Deploy
+    pool:
+      vmImage: 'ubuntu-18.04'
+    environment: dev
+    variables:
+    - group: ReleaseGroupVariables
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: drop
+          - task: AzureWebApp@1
+            displayName: 'Azure App Service Deploy: website'
+            inputs:
+              azureSubscription: 'Resource Manager - Tailspin - Space Game'   #This is the service connection name
+              appName: '$(WebAppName)'    #Variable from variable group - ReleaseGroupVariables
+              appType: webAppLinux
+              package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
