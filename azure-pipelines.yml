@@ -1,8 +1,9 @@
 trigger:
-- '*'
+- '*'     #branch name, * means all branch can trigger this pipeline
 
 variables:
-  buildConfiguration: 'Release'
+  buildConfiguration: 'Release'   #global variable applys for build and deploy
+  releaseBranchName: 'release'
 
 stages:
 - stage: 'Build'
@@ -15,11 +16,11 @@ stages:
       demands:
       - npm
 
-    variables:
+    variables:        #job variable, applys to this job only
       wwwrootDir: 'Tailspin.SpaceGame.Web/wwwroot'
       dotnetSdkVersion: '3.1.300'
 
-    steps:
+    steps:            #sequencial steps with one or more tasks/steps
     - task: UseDotNet@2
       displayName: 'Use .NET Core SDK $(dotnetSdkVersion)'
       inputs:
@@ -65,16 +66,22 @@ stages:
     - publish: '$(Build.ArtifactStagingDirectory)'
       artifact: drop
 
-- stage: 'Deploy'
-  displayName: 'Deploy the web application'
-  dependsOn: Build
+- stage: 'Dev'
+  displayName: 'Deploy the dev environment'
+  dependsOn: Build        #set a dependency of build stage
+  condition: |
+    and
+    (
+      succeeded(),
+      eq(variables['Build.SourceBranchName'], variables['releaseBranchName'])
+    )  
   jobs:
   - deployment: Deploy
     pool:
       vmImage: 'ubuntu-18.04'
-    environment: dev
+    environment: dev      #set an environment 
     variables:
-    - group: Release
+    - group: ReleaseGroupVariables
     strategy:
       runOnce:
         deploy:
@@ -85,5 +92,6 @@ stages:
             displayName: 'Azure App Service Deploy: website'
             inputs:
               azureSubscription: 'Resource Manager - Tailspin - Space Game'
-              appName: '$(WebAppName)'
+              appName: '$(WebAppNameDev)'
+              appType: webAppLinux
               package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
