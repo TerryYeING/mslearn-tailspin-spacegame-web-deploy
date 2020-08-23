@@ -108,7 +108,13 @@ stages:
 - stage: 'Test'
   displayName: 'Deploy to the test environment'
   dependsOn: Dev
-  condition: eq(variables['Build.Reason'], 'Schedule')
+  condition: |
+    and
+    (
+      succeeded(),
+      eq(variables['Build.SourceBranchName'], variables['releaseBranchName'])
+    ) 
+  #condition: eq(variables['Build.Reason'], 'Schedule')
   jobs:
   - deployment: Deploy
     pool:
