@@ -5,6 +5,14 @@ variables:
   buildConfiguration: 'Release'   #global variable applys for build and deploy
   releaseBranchName: 'release'
 
+schedules:
+  - cron: '54 22 23 8 *'
+    displayName: Deploy every day at 3 A.M.
+    branches:
+      include:
+      - "$(releaseBranchName)"
+    always: false
+
 stages:
 - stage: 'Build'
   displayName: 'Build the web application'
@@ -91,7 +99,33 @@ stages:
           - task: AzureWebApp@1
             displayName: 'Azure App Service Deploy: website'
             inputs:
-              azureSubscription: 'Resource Manager - Tailspin - Space Game'
+              azureSubscription: 'Resource Manager - Tailspin - Space Game'   #this is the service connection we create to access azure app service with sp
               appName: '$(WebAppNameDev)'
+              appType: webAppLinux
+              package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
+
+##########################################Deploy to test environment
+- stage: 'Test'
+  displayName: 'Deploy to the test environment'
+  dependsOn: Dev
+  condition: eq(variables['Build.Reason'], 'Schedule')
+  jobs:
+  - deployment: Deploy
+    pool:
+      vmImage: 'ubuntu-18.04'
+    environment: test
+    variables:
+    - group: 'ReleaseGroupVariables'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: drop
+          - task: AzureWebApp@1
+            displayName: 'Azure App Service Deploy: website'
+            inputs:
+              azureSubscription: 'Resource Manager - Tailspin - Space Game'
+              appName: '$(WebAppNameTest)'
               appType: webAppLinux
               package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
