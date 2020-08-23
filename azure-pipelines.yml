@@ -74,90 +74,72 @@ stages:
     - publish: '$(Build.ArtifactStagingDirectory)'
       artifact: drop
 
-- template: templates/deploy.yml   #Dev
-  parameters:
-    deploymentStage: 'Dev'
-    deploymentDependon: 'Build'
-    deploymentEnvironment: 'dev'
+- stage: 'Dev'
+  displayName: 'Deploy the dev environment'
+  dependsOn: Build        #set a dependency of build stage
+  condition: |
+    and
+    (
+      succeeded(),
+      eq(variables['Build.SourceBranchName'], variables['releaseBranchName'])
+    )  
+  jobs:
+  - deployment: Deploy
+    pool:
+      vmImage: 'ubuntu-18.04'
+    environment: dev      #set an environment 
+    variables:
+    - group: ReleaseGroupVariables
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: drop
+          - task: AzureWebApp@1
+            displayName: 'Azure App Service Deploy: website'
+            inputs:
+              azureSubscription: 'Resource Manager - Tailspin - Space Game'   #this is the service connection we create to access azure app service with sp
+              appName: '$(WebAppNameDev)'
+              appType: webAppLinux
+              package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
 
-- template: templates/deploy.yml   #Test
-  parameters:
-    deploymentStage: 'Test'
-    deploymentDependon: 'Dev'
-    deploymentEnvironment: 'test'
-
-- template: templates/deploy.yml   #Staging
-  parameters:
-    deploymentStage: 'Staging'
-    deploymentDependon: 'Test'
-    deploymentEnvironment: 'staging'
-
-# - stage: 'Dev'
-#   displayName: 'Deploy the dev environment'
-#   dependsOn: Build        #set a dependency of build stage
-#   condition: |
-#     and
-#     (
-#       succeeded(),
-#       eq(variables['Build.SourceBranchName'], variables['releaseBranchName'])
-#     )  
-#   jobs:
-#   - deployment: Deploy
-#     pool:
-#       vmImage: 'ubuntu-18.04'
-#     environment: dev      #set an environment 
-#     variables:
-#     - group: ReleaseGroupVariables
-#     strategy:
-#       runOnce:
-#         deploy:
-#           steps:
-#           - download: current
-#             artifact: drop
-#           - task: AzureWebApp@1
-#             displayName: 'Azure App Service Deploy: website'
-#             inputs:
-#               azureSubscription: 'Resource Manager - Tailspin - Space Game'   #this is the service connection we create to access azure app service with sp
-#               appName: '$(WebAppNameDev)'
-#               appType: webAppLinux
-#               package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
-
-# ##########################################Deploy to test environment
-# - stage: 'Test'
-#   displayName: 'Deploy to the test environment'
-#   dependsOn: Dev
-#   condition: |
-#     and
-#     (
-#       succeeded(),
-#       eq(variables['Build.SourceBranchName'], variables['releaseBranchName'])
-#     ) 
-#   #condition: eq(variables['Build.Reason'], 'Schedule')
-#   jobs:
-#   - deployment: Deploy
-#     pool:
-#       vmImage: 'ubuntu-18.04'
-#     environment: test
-#     variables:
-#     - group: 'ReleaseGroupVariables'
-#     strategy:
-#       runOnce:
-#         deploy:
-#           steps:
-#           - download: current
-#             artifact: drop
-#           - task: AzureWebApp@1
-#             displayName: 'Azure App Service Deploy: website'
-#             inputs:
-#               azureSubscription: 'Resource Manager - Tailspin - Space Game'
-#               appName: '$(WebAppNameTest)'
-#               appType: webAppLinux
-#               package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
+##########################################Deploy to test environment
+- stage: 'Test'
+  displayName: 'Deploy to the test environment'
+  dependsOn: Dev
+  condition: |
+    and
+    (
+      succeeded(),
+      eq(variables['Build.SourceBranchName'], variables['releaseBranchName'])
+    ) 
+  #condition: eq(variables['Build.Reason'], 'Schedule')
+  jobs:
+  - deployment: Deploy
+    pool:
+      vmImage: 'ubuntu-18.04'
+    environment: test
+    variables:
+    - group: 'ReleaseGroupVariables'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: drop
+          - task: AzureWebApp@1
+            displayName: 'Azure App Service Deploy: website'
+            inputs:
+              azureSubscription: 'Resource Manager - Tailspin - Space Game'
+              appName: '$(WebAppNameTest)'
+              appType: webAppLinux
+              package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
 
 
-# #######################################Deploy to staging environment 
+#######################################Deploy to staging environment 
 
-# - stage: 'Staging'
+- stage: 'Staging'
   displayName: 'Deploy to the staging environment'
   dependsOn: Test
   jobs:
