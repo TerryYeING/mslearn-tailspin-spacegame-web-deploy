@@ -79,21 +79,18 @@ stages:
     deploymentStage: 'Dev'
     deploymentDependon: 'Build'
     deploymentEnvironment: 'dev'
-    deployVarsGroup: 'ReleaseGroupVariables'
 
 - template: templates/deploy.yml   #Test
   parameters:
     deploymentStage: 'Test'
     deploymentDependon: 'Dev'
     deploymentEnvironment: 'test'
-    deployVarsGroup: 'ReleaseGroupVariables'
 
 - template: templates/deploy.yml   #Staging
   parameters:
     deploymentStage: 'Staging'
     deploymentDependon: 'Test'
     deploymentEnvironment: 'staging'
-    deployVarsGroup: 'ReleaseGroupVariables'
 
 # - stage: 'Dev'
 #   displayName: 'Deploy the dev environment'

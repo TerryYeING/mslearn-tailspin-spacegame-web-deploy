@@ -1,12 +1,11 @@
 parameters:
-  deploymentStage: 'Dev'
-  deploymentDependon: 'Dev'
-  deploymentEnvironment: 'dev'
-  deployVarsGroup: 'ReleaseGroupVariables'
+  deploymentStage: ''
+  deploymentDependon: ''
+  deploymentEnvironment: ''
 
 stages:
 - stage: '${{ parameters.deploymentStage }}'
-  displayName: 'Deploy to the staging environment'
+  displayName: 'Deploy to the ${{ parameters.deploymentEnvironment }} environment'
   dependsOn: '${{ parameters.deploymentDependon }}'
   jobs:
   - deployment: Deploy
@@ -14,7 +13,7 @@ stages:
       vmImage: 'ubuntu-18.04'
     environment: '${{ parameters.deploymentEnvironment }}'
     variables:
-    - group: '${{ parameters.deployVarsGroup }}'
+    - group: 'ReleaseGroupVariables'
     strategy:
       runOnce:
         deploy:
