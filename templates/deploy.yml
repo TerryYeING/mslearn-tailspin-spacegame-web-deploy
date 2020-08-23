@@ -1,0 +1,30 @@
+parameters:
+  deploymentStage: 'Dev'
+  deploymentDependon: 'Dev'
+  deploymentEnvironment: 'dev'
+  deployVarsGroup: 'ReleaseGroupVariables'
+
+stages:
+- stage: '${{ parameters.deploymentStage }}'
+  displayName: 'Deploy to the staging environment'
+  dependsOn: '${{ parameters.deploymentDependon }}'
+  jobs:
+  - deployment: Deploy
+    pool:
+      vmImage: 'ubuntu-18.04'
+    environment: '${{ parameters.deploymentEnvironment }}'
+    variables:
+    - group: '${{ parameters.deployVarsGroup }}'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: drop
+          - task: AzureWebApp@1
+            displayName: 'Azure App Service Deploy: website'
+            inputs:
+              azureSubscription: 'Resource Manager - Tailspin - Space Game'
+              appName: '$(WebAppNameStaging)'
+              appType: webAppLinux
+              package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
